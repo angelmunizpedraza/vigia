@@ -1,0 +1,26 @@
+name: tests
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - name: System libraries (mediapipe imports sounddevice, which needs PortAudio)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libportaudio2 libgl1
+      - name: Install
+        run: uv sync --locked --python 3.12 --all-extras
+      - name: Unit tests and CLI smoke tests (no models, no videos, no network)
+        run: uv run pytest -q -m "not slow"
